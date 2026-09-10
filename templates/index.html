@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Face Attendance</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">FACE / ATTENDANCE</p>
+        <h1>Điểm danh bằng khuôn mặt</h1>
+        <p class="subtitle">Một camera, một bảng điểm danh, không cần mở ứng dụng desktop.</p>
+      </div>
+      <span id="health" class="status-pill">Đang kiểm tra hệ thống...</span>
+    </header>
+
+    <section class="hero-grid">
+      <article class="camera-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">LIVE CHECK-IN</p>
+            <h2>Camera điểm danh</h2>
+          </div>
+          <span id="recognition-state" class="live-dot">Sẵn sàng</span>
+        </div>
+        <div class="video-frame">
+          <video id="camera" autoplay playsinline muted></video>
+          <div id="camera-placeholder" class="camera-placeholder">Camera đang tắt</div>
+          <canvas id="snapshot" hidden></canvas>
+        </div>
+        <div class="camera-actions">
+          <button id="start-camera" class="button button-primary">Bật camera</button>
+          <button id="stop-camera" class="button button-quiet" disabled>Dừng</button>
+        </div>
+        <div id="recognition-result" class="result-box">Chưa có lượt nhận diện nào.</div>
+      </article>
+
+      <aside class="side-column">
+        <section class="tool-panel">
+          <div class="panel-heading compact">
+            <div><p class="eyebrow">DATASET</p><h2>Chụp dữ liệu</h2></div>
+          </div>
+          <label for="person-name">Tên người</label>
+          <input id="person-name" type="text" placeholder="Ví dụ: Nguyen Van A">
+          <label for="capture-stage">Góc chụp</label>
+          <select id="capture-stage">
+            <option value="front">Nhìn thẳng</option>
+            <option value="right">Quay phải</option>
+            <option value="left">Quay trái</option>
+            <option value="mask">Đeo khẩu trang</option>
+          </select>
+          <button id="capture-stage-button" class="button button-secondary">Chụp 10 ảnh</button>
+          <p id="capture-progress" class="helper">Bật camera trước khi chụp dữ liệu.</p>
+        </section>
+
+        <section class="tool-panel">
+          <div class="panel-heading compact">
+            <div><p class="eyebrow">ADMIN</p><h2>Quản lý model</h2></div>
+          </div>
+          <label for="upload-name">Tên người upload</label>
+          <input id="upload-name" type="text" placeholder="Tên thư mục dataset">
+          <input id="upload-files" type="file" accept="image/png,image/jpeg" multiple>
+          <div class="button-row">
+            <button id="upload-button" class="button button-secondary">Upload ảnh</button>
+            <button id="train-button" class="button button-dark">Train model</button>
+          </div>
+          <p id="admin-result" class="helper">Model DeepFace dùng trực tiếp thư mục dataset.</p>
+        </section>
+      </aside>
+    </section>
+
+    <div id="toast" class="toast" role="status"></div>
+  </main>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

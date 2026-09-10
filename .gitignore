@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Secrets — never commit, use GOOGLE_CREDENTIALS_JSON env var on deploy
+credentials.json
+
+# Captured face images (not needed to persist per deploy; re-upload/train after deploy)
+dataset/*/
+!dataset/*.pkl
+
+venv/
+.venv/

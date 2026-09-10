@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: face-mask-ai
+    runtime: python
+    plan: standard # DeepFace + TensorFlow need >1GB RAM; the free/starter plans will OOM.
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: gunicorn web_app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GOOGLE_CREDENTIALS_JSON
+        sync: false
