@@ -73,7 +73,7 @@ def decode_frame(data):
 def extract_face_image(image):
     faces = DeepFace.extract_faces(
         img_path=image,
-        detector_backend="retinaface",
+        detector_backend="opencv",
         enforce_detection=False,
     )
     for face_object in faces:

@@ -8,7 +8,7 @@ dummy_image = np.zeros((200, 200, 3), dtype=np.uint8)
 
 DeepFace.extract_faces(
     img_path=dummy_image,
-    detector_backend="retinaface",
+    detector_backend="opencv",
     enforce_detection=False,
 )
 DeepFace.represent(
