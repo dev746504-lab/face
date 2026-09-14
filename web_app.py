@@ -1,4 +1,5 @@
 import base64
+import gc
 import io
 import json
 import os
@@ -145,6 +146,8 @@ def recognize():
         return jsonify({"ok": True, "name": name, "marked": marked})
     except Exception as error:
         return jsonify({"ok": False, "error": str(error)}), 400
+    finally:
+        gc.collect()
 
 
 @app.post("/api/capture")

@@ -34,7 +34,7 @@ async function startCamera() {
     startButton.disabled = true;
     stopButton.disabled = false;
     recognitionState.textContent = 'Đang nhận diện';
-    recognitionTimer = window.setInterval(recognize, 1500);
+    recognitionTimer = window.setInterval(recognize, 3000);
     showToast('Camera đã bật');
   } catch (error) {
     showToast(`Không mở được camera: ${error.message}`);
