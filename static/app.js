@@ -143,9 +143,18 @@ async function checkHealth() {
   }
 }
 
+async function resetSession() {
+  try {
+    await fetch('/api/reset', { method: 'POST' });
+  } catch (error) {
+    // Không chặn trang nếu reset thất bại; dữ liệu chỉ nằm trong bộ nhớ tạm.
+  }
+}
+
 startButton.addEventListener('click', startCamera);
 stopButton.addEventListener('click', stopCamera);
 document.querySelector('#capture-stage-button').addEventListener('click', captureStage);
 document.querySelector('#upload-button').addEventListener('click', uploadDataset);
 document.querySelector('#train-button').addEventListener('click', trainModel);
 checkHealth();
+resetSession();

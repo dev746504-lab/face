@@ -101,6 +101,12 @@ def index():
     return render_template("index.html")
 
 
+@app.post("/api/reset")
+def reset():
+    marked_today.clear()
+    return jsonify({"ok": True})
+
+
 @app.get("/api/health")
 def health():
     return jsonify({
