@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir --user --timeout 300 --retries 5 -r requirements-
 
 COPY --chown=user . .
 
-RUN mkdir -p dataset && python warmup_models.py
+RUN mkdir -p dataset
 
 EXPOSE 7860
 

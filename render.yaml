@@ -2,11 +2,9 @@ services:
   - type: web
     name: face-mask-ai
     runtime: python
-    plan: standard # DeepFace + TensorFlow need >1GB RAM; the free/starter plans will OOM.
-    buildCommand: pip install --timeout 300 --retries 5 -r requirements-web.txt && python warmup_models.py
+    plan: free # LBPH/OpenCV recognizer has a small memory footprint, no TensorFlow needed.
+    buildCommand: pip install --timeout 300 --retries 5 -r requirements-web.txt
     startCommand: gunicorn web_app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --max-requests 300 --max-requests-jitter 30
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: GOOGLE_CREDENTIALS_JSON
-        sync: false

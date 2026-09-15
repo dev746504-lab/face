@@ -137,7 +137,7 @@ async function checkHealth() {
   try {
     const response = await fetch('/api/health');
     const data = await response.json();
-    health.textContent = data.credentials_exists ? 'Hệ thống sẵn sàng' : 'Thiếu credentials.json';
+    health.textContent = data.model_trained ? 'Hệ thống sẵn sàng' : 'Chưa có model, hãy train trước';
   } catch (error) {
     health.textContent = 'Backend chưa sẵn sàng';
   }

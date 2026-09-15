@@ -1,6 +1,4 @@
 import base64
-import gc
-import io
 import json
 import os
 import subprocess
@@ -9,50 +7,26 @@ from datetime import datetime
 from pathlib import Path
 
 import cv2
-import gspread
 import numpy as np
-from deepface import DeepFace
 from flask import Flask, jsonify, render_template, request
-from google.oauth2.service_account import Credentials
 
 
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_DIR = BASE_DIR / "dataset"
-CREDENTIALS_PATH = BASE_DIR / "credentials.json"
-CREDENTIALS_ENV_VAR = "GOOGLE_CREDENTIALS_JSON"
-SHEET_ID = "17hAejyXdg_FlHLapTWuiuLeSkI4tFFy7_lqk5-DUAes"
+MODEL_PATH = BASE_DIR / "face_model.yml"
+LABELS_PATH = BASE_DIR / "labels.json"
+# LBPH confidence is a distance (lower = better match); above this, treat as Unknown.
+CONFIDENCE_THRESHOLD = 80
 
 app = Flask(__name__)
 marked_today = set()
-_sheet = None
+face_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+)
 
-
-def credentials_available():
-    return bool(os.environ.get(CREDENTIALS_ENV_VAR)) or CREDENTIALS_PATH.exists()
-
-
-def get_sheet():
-    global _sheet
-    if _sheet is None:
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive",
-        ]
-        env_credentials = os.environ.get(CREDENTIALS_ENV_VAR)
-        if env_credentials:
-            credentials = Credentials.from_service_account_info(
-                json.loads(env_credentials), scopes=scopes
-            )
-        elif CREDENTIALS_PATH.exists():
-            credentials = Credentials.from_service_account_file(
-                str(CREDENTIALS_PATH), scopes=scopes
-            )
-        else:
-            raise RuntimeError(
-                f"Missing credentials: set {CREDENTIALS_ENV_VAR} or provide credentials.json"
-            )
-        _sheet = gspread.authorize(credentials).open_by_key(SHEET_ID).sheet1
-    return _sheet
+_recognizer = None
+_labels = None
+_model_mtime = None
 
 
 def decode_frame(data):
@@ -70,19 +44,20 @@ def decode_frame(data):
     return image
 
 
+def detect_face(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    if len(faces) == 0:
+        return None
+    x, y, w, h = max(faces, key=lambda box: box[2] * box[3])
+    return gray[y : y + h, x : x + w]
+
+
 def extract_face_image(image):
-    faces = DeepFace.extract_faces(
-        img_path=image,
-        detector_backend="opencv",
-        enforce_detection=False,
-    )
-    for face_object in faces:
-        face = (face_object["face"] * 255).astype("uint8")
-        if face.size == 0:
-            continue
-        gray_face = cv2.cvtColor(face, cv2.COLOR_RGB2GRAY)
-        return cv2.resize(gray_face, (200, 200))
-    return None
+    face = detect_face(image)
+    if face is None or face.size == 0:
+        return None
+    return cv2.resize(face, (200, 200))
 
 
 def mark_attendance(name):
@@ -90,34 +65,35 @@ def mark_attendance(name):
     attendance_key = f"{today}:{name}"
     if attendance_key in marked_today:
         return False
-
-    sheet = get_sheet()
-    header = sheet.row_values(1)
-    if today not in header:
-        sheet.update_cell(1, len(header) + 1, today)
-        header = sheet.row_values(1)
-    date_column = header.index(today) + 1
-
-    names = sheet.col_values(1)
-    if name not in names:
-        return False
-    row = names.index(name) + 1
-    sheet.update_cell(row, date_column, "X")
     marked_today.add(attendance_key)
     return True
 
 
+def get_recognizer():
+    global _recognizer, _labels, _model_mtime
+    if not MODEL_PATH.exists() or not LABELS_PATH.exists():
+        return None, None
+    mtime = MODEL_PATH.stat().st_mtime
+    if _recognizer is None or mtime != _model_mtime:
+        recognizer = cv2.face.LBPHFaceRecognizer_create()
+        recognizer.read(str(MODEL_PATH))
+        with open(LABELS_PATH) as label_file:
+            labels = json.load(label_file)
+        _recognizer, _labels, _model_mtime = recognizer, labels, mtime
+    return _recognizer, _labels
+
+
 def recognize_image(image):
-    results = DeepFace.find(
-        img_path=image,
-        db_path=str(DATASET_DIR),
-        model_name="ArcFace",
-        enforce_detection=False,
-    )
-    if not results or len(results[0]) == 0:
+    recognizer, labels = get_recognizer()
+    if recognizer is None:
         return "Unknown"
-    identity_path = results[0].iloc[0]["identity"]
-    return Path(identity_path).parent.name
+    face = extract_face_image(image)
+    if face is None:
+        return "Unknown"
+    label_id, confidence = recognizer.predict(face)
+    if confidence > CONFIDENCE_THRESHOLD:
+        return "Unknown"
+    return labels.get(str(label_id), "Unknown")
 
 
 @app.get("/")
@@ -130,7 +106,7 @@ def health():
     return jsonify({
         "ok": True,
         "dataset_exists": DATASET_DIR.exists(),
-        "credentials_exists": credentials_available(),
+        "model_trained": MODEL_PATH.exists(),
     })
 
 
@@ -146,8 +122,6 @@ def recognize():
         return jsonify({"ok": True, "name": name, "marked": marked})
     except Exception as error:
         return jsonify({"ok": False, "error": str(error)}), 400
-    finally:
-        gc.collect()
 
 
 @app.post("/api/capture")
